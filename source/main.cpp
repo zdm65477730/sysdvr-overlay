@@ -18,13 +18,41 @@
 #define MODE_TO_CMD_SET(x) x
 #define UPDATE_INTERVALL 30
 
+using namespace tsl;
+
+bool isServiceRunning(const char *serviceName) {
+    u8 tmp = 0;
+    SmServiceName service_name = smEncodeName(serviceName);
+    Result rc;
+    if(hosversionAtLeast(12, 0, 0)){
+        rc = tipcDispatchInOut(smGetServiceSessionTipc(), 65100, service_name, tmp);
+    } else {
+        rc = serviceDispatchInOut(smGetServiceSession(), 65100, service_name, tmp);
+    }
+    if (R_SUCCEEDED(rc) && tmp & 1)
+        return true;
+    else
+        return false;
+}
+
+long gethostid(void) {
+    u32 id = 0x7f000001;
+
+    Result rc = nifmInitialize(NifmServiceType_User);
+    if (R_SUCCEEDED(rc)) {
+        rc = nifmGetCurrentIpAddress(&id);
+        nifmExit();
+    }
+
+    return id;
+}
+
 class DvrOverlay : public tsl::Gui {
 private:
     Service* dvrService;
     bool gotService = false;
-    u32 version, mode = 0, ipAddress = 0;
+    u32 version, ipAddress = 0;
     u32 targetMode = 0;
-    int waitFrames = -1;
     std::string modeString;
     char ipString[20];
     u32 statusColor = 0;
@@ -39,13 +67,13 @@ public:
     virtual tsl::elm::Element* createUI() override {
         // A OverlayFrame is the base element every overlay consists of. This will draw the default Title and Subtitle.
         // If you need more information in the header or want to change it's look, use a HeaderOverlayFrame.
-        auto frame = new tsl::elm::OverlayFrame(APP_TITLE, APP_VERSION);
+        auto frame = new tsl::elm::OverlayFrame("PluginName"_tr, VERSION);
 
         // A list that can contain sub elements and handles scrolling
         auto list = new tsl::elm::List();
 
         if(!gotService) {   
-            list->addItem(getErrorDrawer("Failed to setup SysDVR Service!\nIs sysdvr running?"), getErrorDrawerSize());
+            list->addItem(getErrorDrawer("SetupSysDvrServiceFailedDvrOverlayErrorDrawerText"_tr), getErrorDrawerSize());
             frame->setContent(list);
             return frame;
         }
@@ -53,22 +81,24 @@ public:
         sysDvrGetVersion(&version);
 
         if(version>SYSDVR_VERSION_MAX ||version<SYSDVR_VERSION_MIN) {
-            list->addItem(getErrorDrawer("Unkown SysDVR Config API: v"+ std::to_string(version) 
-                +"\nOnly Config API v"+std::to_string(SYSDVR_VERSION_MIN)+" to "+std::to_string(SYSDVR_VERSION_MAX)+" is supported"), getErrorDrawerSize());
+            list->addItem(getErrorDrawer("UnkownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText"_tr + std::to_string(version)
+                + "SupportedConfigAPIVersionSysDvrConfigAPIDvrOverlayErrorDrawerText"_tr + std::to_string(SYSDVR_VERSION_MIN) + " - v" + std::to_string(SYSDVR_VERSION_MAX)), getErrorDrawerSize());
             frame->setContent(list);
             return frame;
         }
 
-        u32 newMode, newIp;
-        sysDvrGetMode(&newMode);
-        nifmGetCurrentIpAddress(&newIp);
-        updateMode(newMode);
-        updateIP(newIp);
+        if (gotService) {
+            sysDvrGetMode(&targetMode);
+            updateMode();
+        }
+
+        ipAddress = gethostid();
+        updateIP();
 
         auto infodrawer = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-            renderer->drawString("Info", false, x + 3, y + 16, 20, renderer->a(0xFFFF));
-            renderer->drawString("Mode:", false, x + 3, y + 40, 16, renderer->a(0xFFFF));
-            renderer->drawString("IP-Address:", false, x + 3, y + 60, 16, renderer->a(0xFFFF));
+            renderer->drawString("InfoDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 16, 20, renderer->a(0xFFFF));
+            renderer->drawString("ModeDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 40, 16, renderer->a(0xFFFF));
+            renderer->drawString("IPAddressDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 60, 16, renderer->a(0xFFFF));
             
             renderer->drawCircle(x + 116, y + 35, 5, true, renderer->a(statusColor));
             renderer->drawString(modeString.c_str(), false, x + 130, y + 40, 16, renderer->a(0xFFFF));
@@ -78,21 +108,21 @@ public:
         list->addItem(infodrawer, 70);
 
         // List Items
-        list->addItem(new tsl::elm::CategoryHeader("Change Mode"));
+        list->addItem(new tsl::elm::CategoryHeader("ChangeModeDvrOverlayCategoryHeaderText"_tr));
 
-        auto *offItem = new tsl::elm::ListItem("OFF");
+        auto *offItem = new tsl::elm::ListItem("OffModeDvrOverlayListItemText"_tr);
         offItem->setClickListener(getModeLambda(TYPE_MODE_NULL));
         list->addItem(offItem);
 
-        auto *usbModeItem = new tsl::elm::ListItem("USB");
+        auto *usbModeItem = new tsl::elm::ListItem("USBModeDvrOverlayListItemText"_tr);
         usbModeItem->setClickListener(getModeLambda(TYPE_MODE_USB));
         list->addItem(usbModeItem);
 
-        auto *tcpModeItem = new tsl::elm::ListItem("TCP");
+        auto *tcpModeItem = new tsl::elm::ListItem("TCPModeDvrOverlayListItemText"_tr);
         tcpModeItem->setClickListener(getModeLambda(TYPE_MODE_TCP));
         list->addItem(tcpModeItem);
 
-        auto *rtspModeItem = new tsl::elm::ListItem("RTSP");
+        auto *rtspModeItem = new tsl::elm::ListItem("RTSPModeDvrOverlayListItemText"_tr);
         rtspModeItem->setClickListener(getModeLambda(TYPE_MODE_RTSP));
         list->addItem(rtspModeItem);
 
@@ -103,84 +133,59 @@ public:
         return frame;
     }
 
-    tsl::elm::CustomDrawer* getErrorDrawer(std::string message1){
+    tsl::elm::CustomDrawer* getErrorDrawer(std::string message1) {
         return new tsl::elm::CustomDrawer([message1](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
             renderer->drawString(message1.c_str(), false, x + 3, y + 15, 20, renderer->a(0xF22F));
         });
     }
 
-    int getErrorDrawerSize(){
+    int getErrorDrawerSize() {
         return 50;
     }
 
-    std::function<bool(u64 keys)> getModeLambda(u32 mode){
+    std::function<bool(u64 keys)> getModeLambda(u32 mode) {
         return [this,mode](u64 keys) {
             if (keys & HidNpadButton_A) {
-                sysDVRRequestModeChange(mode);
+                ipAddress = gethostid();
+                updateIP();
+                if (gotService) {
+                    sysDVRRequestModeChange(mode);
+                } else {
+                    return false;
+                }
                 return true;
             }
             return false;
         };
     }
 
-
     // Called once every frame to update values
     int currentFrame = 0;
     virtual void update() override {
         currentFrame++;
-        if(targetMode!=0 && waitFrames < 1){
-            sysDvrSetMode(targetMode);
-            refreshCurMode();
-            waitFrames=-1;
-        } else if(targetMode!=0){
-            waitFrames--;
-        }
         //only check for dvr mode and ip cahnges every 30 fps, so 0,5-1 sec
-        if(currentFrame >= UPDATE_INTERVALL){
-            currentFrame=0;
-            refreshCurMode();
-            refreshIp();
+        if(currentFrame >= UPDATE_INTERVALL) {
+            currentFrame = 0;
+            updateMode();
+            updateIP();
         }
     }
 
-    void refreshCurMode(){
-        if(targetMode!=0){
-            return; // pending mode change
-        }
-        u32 newMode;
-        Result result = sysDvrGetMode(&newMode);
-        if(R_SUCCEEDED(result)){
-            updateMode(newMode);
-        }
-    }
-
-    void refreshIp(){
-        u32 newIp;
-        nifmGetCurrentIpAddress(&newIp);
-        updateIP(newIp);
-    }
-
-    void updateMode(u32 newMode){
-        if(newMode!=mode){
-            mode = newMode;
-            modeString = getModeString(mode);
-            if(mode == TYPE_MODE_SWITCHING){
-                statusColor = 0xF088;
-            } else if(mode == TYPE_MODE_ERROR){
-                statusColor = 0xF22F;
-            } else if(mode == TYPE_MODE_NULL){
-                statusColor = 0xF333;
-            } else {
-                statusColor = 0xF0F0;
-            }
+    void updateMode() {
+        modeString = getModeString(targetMode);
+        if(targetMode == TYPE_MODE_SWITCHING){
+            statusColor = 0xF088;
+        } else if(targetMode == TYPE_MODE_ERROR){
+            statusColor = 0xF22F;
+        } else if(targetMode == TYPE_MODE_NULL){
+            statusColor = 0xF333;
+        } else {
+            statusColor = 0xF0F0;
         }
     }
 
-    void updateIP(u32 newIp){
-        if(newIp!=ipAddress){
-            ipAddress = newIp;
-            snprintf(ipString, sizeof(ipString)-1, "%u.%u.%u.%u", ipAddress&0xFF, (ipAddress>>8)&0xFF, (ipAddress>>16)&0xFF, (ipAddress>>24)&0xFF);
-        }
+    void updateIP() {
+        snprintf(ipString, sizeof(ipString)-1, "%u.%u.%u.%u", ipAddress&0xFF, (ipAddress>>8)&0xFF, (ipAddress>>16)&0xFF, (ipAddress>>24)&0xFF);
     }
 
     // Called once every frame to handle inputs not handled by other UI elements
@@ -188,28 +193,26 @@ public:
         return false;   // Return true here to signal the inputs have been consumed
     }
 
-    std::string getModeString(u32 mode){
+    std::string getModeString(u32 mode) {
         switch(mode){
             case TYPE_MODE_USB:
-                return"USB";
+                return "USBModeDvrOverlayListItemText"_tr;
             case TYPE_MODE_TCP:
-                return"TCP";
+                return "TCPModeDvrOverlayListItemText"_tr;
             case TYPE_MODE_RTSP:
-                return"RTSP";
+                return "RTSPModeDvrOverlayListItemText"_tr;
             case TYPE_MODE_NULL:
-                return"OFF";
+                return "OffModeDvrOverlayListItemText"_tr;
             case TYPE_MODE_SWITCHING:
-                return"Switching";
+                return "SwitchingModeDvrOverlayListItemText"_tr;
             case TYPE_MODE_ERROR:
-                return"Error";
+                return "ErrorModeDvrOverlayListItemText"_tr;
             default:
-                return"Unkown";
+                return "UnkownModeDvrOverlayListItemText"_tr;
         }
     }
 
-
-    Result sysDvrGetVersion(u32* out_ver)
-    {
+    Result sysDvrGetVersion(u32* out_ver) {
         u32 val;
         Result rc = serviceDispatchOut(dvrService, CMD_GET_VER, val);
         if (R_SUCCEEDED(rc))
@@ -217,8 +220,7 @@ public:
         return rc;
     }
 
-    Result sysDvrGetMode(u32* out_mode)
-    {
+    Result sysDvrGetMode(u32* out_mode) {
         u32 val;
         Result rc = serviceDispatchOut(dvrService, CMD_GET_MODE, val);
         if (R_SUCCEEDED(rc))
@@ -226,24 +228,23 @@ public:
         return rc;
     }
 
-    void sysDVRRequestModeChange(u32 command){
-        targetMode = command;
-        updateMode(TYPE_MODE_SWITCHING);
-        // Make sure the mode switching is drawn
-        waitFrames = 2;
-    }
-
-    Result sysDvrSetMode(u32 command)
-    {
-        targetMode = 0;
-        Result rs = serviceDispatch(dvrService, MODE_TO_CMD_SET(command));
-
+    void sysDVRRequestModeChange(u32 command) {
+        targetMode = TYPE_MODE_SWITCHING;
+        updateMode();
+        serviceDispatch(dvrService, MODE_TO_CMD_SET(command));
+        //svcSleepThread(2000'000'000);
         //close and reinit sysdvr service, to directly apply the new mode.
-        smInitialize();
-        serviceClose(dvrService);
-        smGetService(dvrService, "sysdvr");
-        smExit();
-        return rs;
+        //serviceClose(dvrService);
+        //svcSleepThread(100'000'000);
+        //gotService = R_SUCCEEDED(smGetService(dvrService, "sysdvr"));
+        svcSleepThread(500'000'000);
+        targetMode = command;
+
+        //u32 curMode;
+        //if (R_SUCCEEDED(sysDvrGetMode(&curMode))) {
+        //    if (command != curMode)
+        //        targetMode = curMode;
+        //}
     }
 };
 
@@ -254,32 +255,45 @@ private:
 public:
     // libtesla already initialized fs, hid, pl, pmdmnt, hid:sys and set:sys
     virtual void initServices() override {
-        if(isSysDVRServiceRunning()){
+        std::string jsonStr = R"(
+            {
+                "PluginName": "Sysdvr",
+                "SetupSysDvrServiceFailedDvrOverlayErrorDrawerText": "Failed to setup SysDVR Service!\nIs sysdvr running?",
+                "UnkownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText": "Unkown SysDVR Config API: v",
+                "SupportedConfigAPIVersionSysDvrConfigAPIDvrOverlayErrorDrawerText": "\nOnly support Config API v",
+                "InfoDvrOverlayCustomDrawerText": "Info",
+                "ModeDvrOverlayCustomDrawerText": "Mode:",
+                "IPAddressDvrOverlayCustomDrawerText": "IP-Address:",
+                "ChangeModeDvrOverlayCategoryHeaderText": "Change Mode",
+                "OffModeDvrOverlayListItemText": "OFF",
+                "USBModeDvrOverlayListItemText": "USB",
+                "TCPModeDvrOverlayListItemText": "TCP",
+                "RTSPModeDvrOverlayListItemText": "RTSP",
+                "SwitchingModeDvrOverlayListItemText": "Switching",
+                "ErrorModeDvrOverlayListItemText": "Error",
+                "UnkownModeDvrOverlayListItemText": "Unkown"
+            }
+        )";
+        std::string lanPath = std::string("sdmc:/switch/.overlays/lang/") + APPTITLE + "/";
+        fsdevMountSdmc();
+        tsl::hlp::doWithSmSession([&lanPath, &jsonStr]{
+            tsl::tr::InitTrans(lanPath, jsonStr);
+        });
+        fsdevUnmountDevice("sdmc");
+
+        smInitialize();
+        if(isServiceRunning("sysdvr")) {
             gotService = R_SUCCEEDED(smGetService(&dvr, "sysdvr"));
         }
-        nifmInitialize(NifmServiceType_User);
+        //nifmInitialize(NifmServiceType_User);
     }  // Called at the start to initialize all services necessary for this Overlay
     virtual void exitServices() override {
+        //nifmExit();
         if(gotService){
             serviceClose(&dvr);
         }
-        nifmExit();
+        smExit();
     }  // Callet at the end to clean up all services previously initialized
-
-    bool isSysDVRServiceRunning() {
-      u8 tmp=0;
-      SmServiceName service_name = smEncodeName("sysdvr");
-      Result rc;
-      if(hosversionAtLeast(12,0,0)){
-        rc = tipcDispatchInOut(smGetServiceSessionTipc(), 65100, service_name, tmp);
-      } else {
-        rc = serviceDispatchInOut(smGetServiceSession(), 65100, service_name, tmp);
-      }
-      if (R_SUCCEEDED(rc) && tmp & 1)
-        return true;
-      else
-        return false;
-    }
 
     virtual void onShow() override {}    // Called before overlay wants to change from invisible to visible state
     virtual void onHide() override {}    // Called before overlay wants to change from visible to invisible state
