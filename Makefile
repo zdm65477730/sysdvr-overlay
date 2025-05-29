@@ -37,10 +37,17 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-APP_TITLE	:=	SysDVR Overlay
-APP_VERSION :=	1.0.14
+APP_TITLE	=	SysDVR
+export APP_TITLE
 
-TARGET		:=	$(notdir $(CURDIR))
+APP_VERSION :=	v1.0.14
+ifeq ($(RELEASE),)
+	APP_VERSION	:=	$(APP_VERSION)-$(shell git describe --always)
+endif
+
+APP_TITID := $(shell grep -oP '"tid"\s*:\s*"\K(\w+)' $(TOPDIR)/SysDVR/sysmodule/toolbox.json)
+
+TARGET		:=	$(APP_TITLE)
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
@@ -58,7 +65,7 @@ CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__
 
-CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++20 -DAPP_TITLE="\"$(APP_TITLE)\"" -DAPP_VERSION="\"v$(APP_VERSION)\""
+CXXFLAGS	:= $(CFLAGS) -fexceptions -std=c++20 -DAPPTITLE="\"$(APP_TITLE)\"" -DVERSION="\"$(APP_VERSION)\""
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
@@ -148,7 +155,7 @@ ifeq ($(strip $(NO_ICON)),)
 endif
 
 ifeq ($(strip $(NO_NACP)),)
-	export NROFLAGS += --nacp=$(CURDIR)/$(TARGET).nacp
+	export NROFLAGS += --nacp=$(OUTPUT).nacp
 endif
 
 ifneq ($(APP_TITLEID),)
@@ -166,13 +173,27 @@ all: $(BUILD)
 
 
 $(BUILD):
+	@$(MAKE) -C $(CURDIR)/$(APP_TITLE)/sysmodule
+	@$(MAKE) -C $(CURDIR)/$(APP_TITLE)/SysDVRConfig
 	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+	@$(MAKE) -C $(BUILD) -f $(CURDIR)/Makefile
+	@rm -rf $(CURDIR)/SdOut
+	@mkdir -p $(CURDIR)/SdOut/switch/$(APP_TITLE)
+	@mkdir -p $(CURDIR)/SdOut/switch/.overlays/lang/$(APP_TITLE)
+	@mkdir -p $(CURDIR)/SdOut/atmosphere/contents/$(APP_TITID)/flags
+	@cp -r $(CURDIR)/$(TARGET).ovl $(CURDIR)/SdOut/switch/.overlays/
+	@cp -r $(CURDIR)/lang/* $(CURDIR)/SdOut/switch/.overlays/lang/$(APP_TITLE)/
+	@cp -r $(CURDIR)/$(APP_TITLE)/SysDVRConfig/$(APP_TITLE).nro $(CURDIR)/SdOut/switch/$(APP_TITLE)/
+	@cp -r $(CURDIR)/$(APP_TITLE)/sysmodule/sysmodule.nsp $(CURDIR)/SdOut/atmosphere/contents/$(APP_TITID)/exefs.nsp
+	@cp -r $(CURDIR)/$(APP_TITLE)/sysmodule/toolbox.json $(CURDIR)/SdOut/atmosphere/contents/$(APP_TITID)/toolbox.json
+	@>$(CURDIR)/SdOut/atmosphere/contents/$(APP_TITID)/flags/boot2.flag
+	@cd $(CURDIR)/SdOut; zip -r -q -9 $(APP_TITLE).zip atmosphere switch; cd $(CURDIR)
 
 #---------------------------------------------------------------------------------
 clean:
-	@rm -fr $(BUILD) $(TARGET).ovl $(TARGET).nro $(TARGET).nacp $(TARGET).elf
-
+	@$(MAKE) -C $(CURDIR)/$(APP_TITLE)/sysmodule clean
+	@$(MAKE) -C $(CURDIR)/$(APP_TITLE)/SysDVRConfig clean
+	@rm -fr $(BUILD) $(CURDIR)/SdOut $(TARGET).ovl $(TARGET).nro $(TARGET).nacp $(TARGET).elf
 
 #---------------------------------------------------------------------------------
 else
