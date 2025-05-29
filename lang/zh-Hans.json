@@ -1,0 +1,18 @@
+{
+    "PluginName": "游戏串流",
+    "SetupSysDvrServiceFailedDvrOverlayErrorDrawerText": "无法设置SysDVR服务！\nSysdvr服务是否正在运行？",
+    "UnkownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText": "未知的SysDVR配置API版本：v",
+    "SupportedConfigAPIVersionSysDvrConfigAPIDvrOverlayErrorDrawerText": "\n仅支持配置API版本 v",
+    "InfoDvrOverlayCustomDrawerText": "信息：",
+    "ModeDvrOverlayCustomDrawerText": "模式：",
+    "IPAddressDvrOverlayCustomDrawerText": "IP地址：",
+    "IPCVersionDvrOverlayCustomDrawerText": "IPC版本：",
+    "ChangeModeDvrOverlayCategoryHeaderText": "更改模式",
+    "OffModeDvrOverlayListItemText": "关闭",
+    "USBModeDvrOverlayListItemText": "USB",
+    "TCPModeDvrOverlayListItemText": "TCP",
+    "RTSPModeDvrOverlayListItemText": "RTSP",
+    "SwitchingModeDvrOverlayListItemText": "切换中",
+    "ErrorModeDvrOverlayListItemText": "错误",
+    "UnkownModeDvrOverlayListItemText": "未知"
+}
