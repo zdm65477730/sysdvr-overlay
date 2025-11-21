@@ -3,7 +3,7 @@
 
 //This is a version for the SysDVR Config app protocol, it's not shown anywhere and not related to the major version
 #define SYSDVR_VERSION_MIN 5
-#define SYSDVR_VERSION_MAX 16
+#define SYSDVR_VERSION_MAX 17
 #define TYPE_MODE_USB 1
 #define TYPE_MODE_TCP 2
 #define TYPE_MODE_RTSP 4
@@ -54,6 +54,7 @@ private:
     u32 version, ipAddress = 0;
     u32 targetMode = 0;
     std::string modeString;
+    std::string versionString;
     char ipString[20];
     u32 statusColor = 0;
 public:
@@ -79,6 +80,7 @@ public:
         }
         
         sysDvrGetVersion(&version);
+        versionString = std::to_string(version);
 
         if(version>SYSDVR_VERSION_MAX ||version<SYSDVR_VERSION_MIN) {
             list->addItem(getErrorDrawer("UnkownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText"_tr + std::to_string(version)
@@ -99,13 +101,15 @@ public:
             renderer->drawString("InfoDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 16, 20, renderer->a(0xFFFF));
             renderer->drawString("ModeDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 40, 16, renderer->a(0xFFFF));
             renderer->drawString("IPAddressDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 60, 16, renderer->a(0xFFFF));
-            
+            renderer->drawString("IPCVersionDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 80, 16, renderer->a(0xFFFF));
             renderer->drawCircle(x + 116, y + 35, 5, true, renderer->a(statusColor));
             renderer->drawString(modeString.c_str(), false, x + 130, y + 40, 16, renderer->a(0xFFFF));
 
             renderer->drawString(ipString, false, x + 110, y + 60, 16, renderer->a(0xFFFF));
+
+            renderer->drawString(versionString.c_str(), false, x + 110, y + 80, 16, renderer->a(0xFFFF));
         });
-        list->addItem(infodrawer, 70);
+        list->addItem(infodrawer, 85);
 
         // List Items
         list->addItem(new tsl::elm::CategoryHeader("ChangeModeDvrOverlayCategoryHeaderText"_tr));
@@ -264,6 +268,10 @@ public:
                 "InfoDvrOverlayCustomDrawerText": "Info",
                 "ModeDvrOverlayCustomDrawerText": "Mode:",
                 "IPAddressDvrOverlayCustomDrawerText": "IP-Address:",
+<<<<<<< HEAD
+=======
+                "IPCVersionDvrOverlayCustomDrawerText": "IPC-Version:",
+>>>>>>> Hartie95-master
                 "ChangeModeDvrOverlayCategoryHeaderText": "Change Mode",
                 "OffModeDvrOverlayListItemText": "OFF",
                 "USBModeDvrOverlayListItemText": "USB",

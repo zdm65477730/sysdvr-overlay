@@ -6,6 +6,10 @@
     "InfoDvrOverlayCustomDrawerText": "信息：",
     "ModeDvrOverlayCustomDrawerText": "模式：",
     "IPAddressDvrOverlayCustomDrawerText": "IP地址：",
+<<<<<<< HEAD
+=======
+    "IPCVersionDvrOverlayCustomDrawerText": "IPC版本：",
+>>>>>>> Hartie95-master
     "ChangeModeDvrOverlayCategoryHeaderText": "更改模式",
     "OffModeDvrOverlayListItemText": "关闭",
     "USBModeDvrOverlayListItemText": "USB",
