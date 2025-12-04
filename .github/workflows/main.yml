@@ -1,7 +1,7 @@
 name: Release
 
 on:
-  worlkflow_dispatch:
+  workflow_dispatch:
   issue_comment:
     types: [ created ]
 
