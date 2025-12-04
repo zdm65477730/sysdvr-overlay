@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  worlkflow_dispatch:
   issue_comment:
     types: [ created ]
 
