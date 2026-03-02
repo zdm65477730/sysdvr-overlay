@@ -3,7 +3,7 @@
 
 //This is a version for the SysDVR Config app protocol, it's not shown anywhere and not related to the major version
 #define SYSDVR_VERSION_MIN 5
-#define SYSDVR_VERSION_MAX 17
+#define SYSDVR_VERSION_MAX 18
 #define TYPE_MODE_USB 1
 #define TYPE_MODE_TCP 2
 #define TYPE_MODE_RTSP 4
@@ -102,6 +102,7 @@ public:
             renderer->drawString("ModeDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 40, 16, renderer->a(0xFFFF));
             renderer->drawString("IPAddressDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 60, 16, renderer->a(0xFFFF));
             renderer->drawString("IPCVersionDvrOverlayCustomDrawerText"_tr.c_str(), false, x + 3, y + 80, 16, renderer->a(0xFFFF));
+            
             renderer->drawCircle(x + 116, y + 35, 5, true, renderer->a(statusColor));
             renderer->drawString(modeString.c_str(), false, x + 130, y + 40, 16, renderer->a(0xFFFF));
 
@@ -268,10 +269,7 @@ public:
                 "InfoDvrOverlayCustomDrawerText": "Info",
                 "ModeDvrOverlayCustomDrawerText": "Mode:",
                 "IPAddressDvrOverlayCustomDrawerText": "IP-Address:",
-<<<<<<< HEAD
-=======
                 "IPCVersionDvrOverlayCustomDrawerText": "IPC-Version:",
->>>>>>> Hartie95-master
                 "ChangeModeDvrOverlayCategoryHeaderText": "Change Mode",
                 "OffModeDvrOverlayListItemText": "OFF",
                 "USBModeDvrOverlayListItemText": "USB",
