@@ -83,8 +83,8 @@ public:
         versionString = std::to_string(version);
 
         if(version>SYSDVR_VERSION_MAX ||version<SYSDVR_VERSION_MIN) {
-            list->addItem(getErrorDrawer("UnkownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText"_tr + std::to_string(version)
-                + "SupportedConfigAPIVersionSysDvrConfigAPIDvrOverlayErrorDrawerText"_tr + std::to_string(SYSDVR_VERSION_MIN) + " - v" + std::to_string(SYSDVR_VERSION_MAX)), getErrorDrawerSize());
+            list->addItem(getErrorDrawer("UnknownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText"_tr + std::to_string(version)
+                + "SupportedConfigAPIVersionSysDvrConfigAPIDvrOverlayErrorDrawerText"_tr + std::to_string(SYSDVR_VERSION_MIN) + " - " + std::to_string(SYSDVR_VERSION_MAX)), getErrorDrawerSize());
             frame->setContent(list);
             return frame;
         }
@@ -213,7 +213,7 @@ public:
             case TYPE_MODE_ERROR:
                 return "ErrorModeDvrOverlayListItemText"_tr;
             default:
-                return "UnkownModeDvrOverlayListItemText"_tr;
+                return "UnknownModeDvrOverlayListItemText"_tr;
         }
     }
 
@@ -264,7 +264,7 @@ public:
             {
                 "PluginName": "Sysdvr",
                 "SetupSysDvrServiceFailedDvrOverlayErrorDrawerText": "Failed to setup SysDVR Service!\nIs sysdvr running?",
-                "UnkownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText": "Unkown SysDVR Config API: v",
+                "UnknownSysDvrConfigAPIVersionDvrOverlayErrorDrawerText": "Unknown SysDVR Config API: v",
                 "SupportedConfigAPIVersionSysDvrConfigAPIDvrOverlayErrorDrawerText": "\nOnly support Config API v",
                 "InfoDvrOverlayCustomDrawerText": "Info",
                 "ModeDvrOverlayCustomDrawerText": "Mode:",
@@ -277,7 +277,7 @@ public:
                 "RTSPModeDvrOverlayListItemText": "RTSP",
                 "SwitchingModeDvrOverlayListItemText": "Switching",
                 "ErrorModeDvrOverlayListItemText": "Error",
-                "UnkownModeDvrOverlayListItemText": "Unkown"
+                "UnknownModeDvrOverlayListItemText": "Unknown"
             }
         )";
         std::string lanPath = std::string("sdmc:/switch/.overlays/lang/") + APPTITLE + "/";
