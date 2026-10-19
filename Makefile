@@ -40,7 +40,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 APP_TITLE	=	SysDVR
 export APP_TITLE
 
-APP_VERSION :=	v1.0.15
+APP_VERSION :=	v1.0.16
 ifeq ($(RELEASE),)
 	APP_VERSION	:=	$(APP_VERSION)-$(shell git describe --always)
 endif
